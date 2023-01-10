@@ -1,0 +1,90 @@
+---
+- hosts: all
+  become: true
+  tasks:
+
+    - name: update cache
+      apt:
+        update_cache: true
+
+    - name: install software commons
+      apt:
+        name:
+
+          - apt-transport-https
+          - lsb-release
+          - ca-certificates
+          - wget
+        state: present
+        update_cache: yes
+
+    - name: Add php8.1 ppa to ubuntu
+      apt_repository:
+        repo: ppa:ondrej/php
+
+    - name: update apt cache
+      apt:
+        update_cache: yes
+
+    - name: install php8.0 and php8.0-fpm
+      apt:
+        name: php8.1-fpm
+
+      # apt: name={{ item }} state=latest force_apt_get=yes update_cache=yes
+        # loop: ['php8.1', 'php8.1-fpm']
+
+            # - name: ensure apache service is stopped
+            # service:
+            # name: apache
+            # state: stopped 
+
+    - name: Update apt cache and install Nginx
+      apt:
+        name: nginx
+        state: latest
+        update_cache: yes
+
+    - name: ensure nginx service is started and also starts on boot
+      service:
+        name: nginx
+        state: started
+        enabled: true
+
+
+    - name: Copy website files to the server's document root
+      copy:
+        src: "files/app"
+        dest: "/var/www/html/"
+        mode: preserve
+
+    - name: Apply Nginx template
+      template:
+        src: files/nginx.conf.j2
+        dest: /etc/nginx/sites-available/default    
+      notify: Restart Nginx
+
+    - name: Enable new site
+      file:
+        src: /etc/nginx/sites-available/default
+        dest: /etc/nginx/sites-enabled/default
+        state: link
+      notify: Restart Nginx
+
+    - name: Allow all access to tcp port 80
+      ufw:
+        rule: allow
+        port: '80'
+        proto: tcp
+
+  handlers:
+    - name: Restart Nginx
+      service:
+        name: nginx
+        state: restarted
+
+        
+        
+
+
+          
+        
